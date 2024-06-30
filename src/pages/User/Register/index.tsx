@@ -2,13 +2,13 @@ import {Footer} from '@/components';
 import {LockOutlined, UserOutlined,} from '@ant-design/icons';
 import {LoginForm, ProFormText,} from '@ant-design/pro-components';
 import {Helmet, history, useModel} from '@umijs/max';
-import {Alert, Divider, message, Space, Tabs} from 'antd';
+import {Divider, message, Space, Tabs} from 'antd';
 import {createStyles} from 'antd-style';
 import React, {useState} from 'react';
 import {flushSync} from 'react-dom';
 import Settings from '../../../../config/defaultSettings';
 import {Link} from "@@/exports";
-import {getLoginUserUsingGet, userLoginUsingPost} from "@/services/taobi/userController";
+import {getLoginUserUsingGet, userLoginUsingPost, userRegisterUsingPost} from "@/services/taobi/userController";
 
 
 const useStyles = createStyles(({token}) => {
@@ -48,39 +48,32 @@ const useStyles = createStyles(({token}) => {
 });
 
 
-const Login: React.FC = () => {
+const Register: React.FC = () => {
   const [type, setType] = useState<string>('account');
-  const {initialState, setInitialState} = useModel('@@initialState');
   const {styles} = useStyles();
 
 
-  const fetchUserInfo = async () => {
-    const userInfo = await getLoginUserUsingGet();
-    if (userInfo) {
-      flushSync(() => {
-        setInitialState((s) => ({
-          ...s,
-          currentUser: userInfo,
-        }));
-      });
+
+  const handleSubmit = async (values: API.UserRegisterRequest) => {
+    const {userPassword,checkPassword} = values;
+    //校验
+    if (userPassword !== checkPassword) {
+      message.error('两次输入的密码不匹配！');
+      return;
     }
-  };
-  const handleSubmit = async (values: API.UserLoginRequest) => {
     try {
-      // 登录
-      const res = await userLoginUsingPost(values);
+      // 注册
+      const res = await userRegisterUsingPost(values);
       if (res.code === 0) {
-        const defaultLoginSuccessMessage = '登录成功！';
+        const defaultLoginSuccessMessage = '注册成功！';
         message.success(defaultLoginSuccessMessage);
-        await fetchUserInfo();
-        const urlParams = new URL(window.location.href).searchParams;
-        history.push(urlParams.get('redirect') || '/');
+        history.push('/user/login');
         return;
-      } else {
+      }else {
         message.error(res.message);
       }
     } catch (error) {
-      const defaultLoginFailureMessage = '登录失败，请重试！';
+      const defaultLoginFailureMessage = '注册失败，请重试！';
       console.log(error);
       message.error(defaultLoginFailureMessage);
     }
@@ -89,7 +82,7 @@ const Login: React.FC = () => {
     <div className={styles.container}>
       <Helmet>
         <title>
-          {'登录'}- {Settings.title}
+          {'注册'}- {Settings.title}
         </title>
       </Helmet>
       <div
@@ -118,7 +111,7 @@ const Login: React.FC = () => {
             items={[
               {
                 key: 'account',
-                label: '账户密码登录',
+                label: '账户密码注册',
               },
             ]}
           />
@@ -151,6 +144,30 @@ const Login: React.FC = () => {
                     required: true,
                     message: '密码是必填项！',
                   },
+                  {
+                    min: 8,
+                    type: 'string',
+                    message: '长度不能小于 8',
+                  },
+                ]}
+              />
+              <ProFormText.Password
+                name="checkPassword"
+                fieldProps={{
+                  size: 'large',
+                  prefix: <LockOutlined/>,
+                }}
+                placeholder={'请再次输入密码'}
+                rules={[
+                  {
+                    required: true,
+                    message: '密码是必填项！',
+                  },
+                  {
+                    min: 8,
+                    type: 'string',
+                    message: '长度不能小于 8',
+                  },
                 ]}
               />
             </>
@@ -163,7 +180,7 @@ const Login: React.FC = () => {
           >
             <Space split={<Divider type='vertical'/>}>
 
-              <Link to="/user/register">暂无账号？注册</Link>
+              <Link to="/user/login">已有账号？登录</Link>
 
             </Space>
           </div>
@@ -173,4 +190,4 @@ const Login: React.FC = () => {
     </div>
   );
 };
-export default Login;
+export default Register;
